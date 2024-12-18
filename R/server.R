@@ -1,6 +1,6 @@
 #' @importFrom grDevices colorRampPalette
 #' @importFrom utils head tail
-SPEED_TO_MS <- c(500, 250, 100)
+SPEED_TO_MS <- c(500, 250, 100, 1)
 
 # Create covariance matrix for a normal distribution with a given correlation
 make_sigma <- function(r = 0) {
@@ -169,7 +169,7 @@ server <- function(input, output, session) {
     shinyjs::html("text_momentum", paste("Momentum:", momentum))
 
     if (data$accepted) {
-      point_color <- "red"
+      point_color <- "#8F272780"
       segments_x <- data$segments$x
       segments_y <- data$segments$y
       segments_z <- data$segments$z
@@ -177,7 +177,8 @@ server <- function(input, output, session) {
       point_y <- data$point$y
       point_z <- data$point$z
     } else {
-      point_color <- "grey30"
+      point_color <- "#00FF0080"
+
       segments_x <- head(data$segments$x, -1)
       segments_y <- head(data$segments$y, -1)
       segments_z <- head(data$segments$z, -1)
@@ -190,7 +191,7 @@ server <- function(input, output, session) {
     app_data$arrow_obj <- rgl::arrow3d(
       p0 = c(segments_x[1], segments_y[1], 0),
       p1 = c(data$momentum$x, data$momentum$y, 0),
-      color = "grey30",
+      color = "#000000",
       n = 2,
       barblen = 0.02,
       width = 1 / 2,
@@ -230,13 +231,16 @@ server <- function(input, output, session) {
         objects = msg_objects,
         subscene = subscene,
         completed_id = "trajectory_done",
-        total_time = SPEED_TO_MS[[input$speed]]
+        total_time = SPEED_TO_MS[[input$speed]],
+        draw_trajectory = input$draw_trajectory
       )
     )
     points_objects_dev1$push(point)
   }, ignoreInit = TRUE)
+    
 
 
+  
   shiny::observeEvent(input$manual_momentum, {
     if (input$manual_momentum) {
       shinyjs::enable("momentum_x")
@@ -272,7 +276,7 @@ server <- function(input, output, session) {
 
     if (data$accepted) {
       point <- rgl::points3d(
-        x = data$point$x, y = data$point$y, z = 0, color = "red", size = 4
+        x = data$point$x, y = data$point$y, z = 0, color = '#8F2727', size = 4
       )
       msg_objects <- get_objects(list(point), subscene)
       session$sendCustomMessage(

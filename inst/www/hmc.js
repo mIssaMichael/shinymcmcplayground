@@ -7,7 +7,7 @@ const drawTrajectoryHMC = function (message) {
   // The ID of the subscene
   var subscene = message.subscene;
 
-  // The ID of the input that will be changed once the trajectory finished
+  // The ID of the input that will be changed once the trajectory finishes
   var completed_id = message.completed_id;
 
   // Total time for the animation (target)
@@ -27,7 +27,10 @@ const drawTrajectoryHMC = function (message) {
   // Time interval between addition of segments
   var interval = total_time / segments_keys_array.length;
 
-  // First do a pass to init all the segments, before drawing.
+  // Check if the trajectory should be drawn or skipped (based on input)
+  var drawTrajectory = message.draw_trajectory;
+
+  // First, do a pass to init all the segments, before drawing.
   // Then do another pass where we add segments to subscene and draw them.
   // All the overhead of object initialization happens together at the beginning.
   for (i = 0; i < segments_keys_array.length; i++) {
@@ -37,40 +40,42 @@ const drawTrajectoryHMC = function (message) {
     rgl.initObj(object);
   }
 
-  // If we want to change the colors...
-  // 0. Get object ID
-  // obj_id = segments_keys_array[i];
-  // 1. Get object with its ID
-  // obj = rgl.getObj(obj_id);
-  // 2. Change color
-  // obj.colors[0] = new_color;
-  // 3. Initialize again
-  // rgl.initObjId(obj_id)
-  // 4. Draw scene
-  // rgl.drawScene();
-
   function* animate() {
-    // Add segments
-    for (i = 0; i < segments_keys_array.length; i++) {
-      key = segments_keys_array[i];
-      rgl.addToSubscene(key, subscene);
-      rgl.drawScene();
-      yield interval;
+    if (drawTrajectory) {
+      // Only proceed with trajectory animation if drawTrajectory is true
+      console.log("drawTrajectory:", drawTrajectory); // Optional: log for debugging
+      // Draw trajectory segments (with delays)
+      for (i = 0; i < segments_keys_array.length; i++) {
+        key = segments_keys_array[i];
+        rgl.addToSubscene(key, subscene);
+        rgl.drawScene();
+        yield interval;
+      }
     }
 
-    // Add point
+    // Add the last point to the scene
     key = objs_keys_array.slice(-1)[0];
     var object = objects[key];
     rgl.scene.objects[key] = object;
     rgl.initObj(object);
     rgl.addToSubscene(key, subscene);
     rgl.drawScene();
+
+    if (!drawTrajectory) {
+      // If no trajectory drawing, we can skip the segment removal and just finalize
+      sendCompletedMessage(completed_id);
+      return;
+    }
+
+    // Delay before removing segments
     yield interval;
 
-    // Remove segments
-    for (i = 0; i < segments_keys_array.length; i++) {
-      rgl.delFromSubscene(segments_keys_array[i], subscene);
-      delete rgl.scene.objects[segments_keys_array[i]];
+    // Remove trajectory segments if drawTrajectory is true
+    if (drawTrajectory) {
+      for (i = 0; i < segments_keys_array.length; i++) {
+        rgl.delFromSubscene(segments_keys_array[i], subscene);
+        delete rgl.scene.objects[segments_keys_array[i]];
+      }
     }
     rgl.drawScene();
     sendCompletedMessage(completed_id);
@@ -79,6 +84,7 @@ const drawTrajectoryHMC = function (message) {
   // Call animate generator
   iterate_with_pauses(this, animate());
 };
+
 
 Shiny.addCustomMessageHandler("drawTrajectoryHMC", drawTrajectoryHMC);
 

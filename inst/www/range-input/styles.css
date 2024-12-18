@@ -13,7 +13,7 @@ input[type=range]:focus {
 }
 
 input[type=range]::-webkit-slider-runnable-track {
-  background: #34495e;
+  background: #ffffff;
   border-radius: 25px;
   cursor: pointer;
   height: 4px;
@@ -22,7 +22,7 @@ input[type=range]::-webkit-slider-runnable-track {
 
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  background: #fff;
+  background: #8F2727;
   border-radius: 50%;
   box-shadow: 0 0 4px 0 rgba(0, 0 ,0, 1);
   cursor: pointer;
@@ -31,8 +31,9 @@ input[type=range]::-webkit-slider-thumb {
   width: 16px;
 }
 
+
 input[type=range]:focus::-webkit-slider-runnable-track {
-  background: #34495e;
+  background: #ffffff;
 }
 
 .range-value {
@@ -41,9 +42,9 @@ input[type=range]:focus::-webkit-slider-runnable-track {
 }
 
 .range-value span {
-  background: #34495e;
+  background: #ffffff;
   border-radius: 6px;
-  color: #fff;
+  color: #000000;
   display: block;
   font-family: "Roboto Slab", sans-serif;
   font-size: 12px;
@@ -62,7 +63,7 @@ input[type=range]:focus::-webkit-slider-runnable-track {
 .range-value span:before{
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-top: 10px solid #34495e;
+  border-top: 10px solid #ffffff;
   content: "";
   height: 0;
   left: 50%;

@@ -1,5 +1,5 @@
 COLORS <- list(
-  background = "grey85",
+  background = "#ffffff",
   contour = "grey50",
   surface = c("grey45", "grey80")
 )

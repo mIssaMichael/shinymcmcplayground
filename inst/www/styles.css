@@ -2,7 +2,7 @@
 
 /* --------------- Sidebar -------------- */
 #sidebar {
-  background: hsl(210, 45%, 50%);
+  background: #A25050;
   color: white;
   max-width: 500px;
   min-width: 350px;
@@ -18,7 +18,7 @@
 }
 
 #sidebar::after {
-  background-color: hsl(210, 42%, 20%);
+  background-color: #A25050;
   bottom: 0;
   content: "";
   cursor: ew-resize; /* Set cursor for the resizable handle */

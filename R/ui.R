@@ -83,8 +83,11 @@ make_sidebar <- function() {
         ),
       ),
       tags$div(
-          rangeInput("speed", step = 1, value = 3, labels = c("Slow", "Medium", "Fast")),
+          rangeInput("speed", step = 1, value = 3, labels = c("Slow", "Medium", "Fast", "Hurry")),
           tags$p("Animation speed", class = "range-input-label")
+      ),
+       tags$div(
+        shiny::checkboxInput("draw_trajectory", "Draw Trajectory", TRUE)
       ),
       tags$div(
         shiny::checkboxInput("manual_momentum", "Set momentum manually", FALSE)
@@ -129,7 +132,7 @@ tex_panel_2 <- "p (\\boldsymbol{\\theta} \\mid \\boldsymbol{y})"
 make_body <- function() {
   tags$div(
     style = "margin: 10px",
-    tags$h2("How does Hamiltonian Monte Carlo work?", class = "body-header"),
+    tags$h2("Hamiltonian Monte Carlo", class = "body-header"),
     tags$div(
       class = "plot-container",
       tags$div(htmltools::HTML(katex::katex_html(tex_panel_1, preview = FALSE))),
@@ -141,7 +144,7 @@ make_body <- function() {
     ),
     tags$div(
       style = "padding-left: 10px;",
-      tags$h2("Details 🤓", class = "details-header"),
+      tags$h2("Shut 🤓", class = "details-header"),
       tags$div(
         class = "accordion",
         accordionItem(
