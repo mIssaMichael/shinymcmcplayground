@@ -41,6 +41,7 @@ select_input_options <- list(
 )
 
 choices <- c("normal_1", "normal_2", "normal_3", "normal_mixture", "banana", "funnel")
+proposal_choices <- c("normal", "t-distribution", "normal_mixture")
 choices_names <- c(
   "\\mathcal{N}\\left(\\begin{bmatrix} 0 \\\\ 0 \\end{bmatrix}, \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix}\\right)",
   "\\mathcal{N}\\left(\\begin{bmatrix} 0 \\\\ 0 \\end{bmatrix}, \\begin{bmatrix} 1 & 0.3 \\\\ 0.3 & 1 \\end{bmatrix}\\right)",
@@ -49,7 +50,16 @@ choices_names <- c(
   "\\text{Rosenbrock's Banana}",
   "\\text{Neal's Funnel}"
 )
+proposal_choices_names <- c(
+  "\\mathcal{N}\\left(\\begin{bmatrix} q_{\\text{current},1} \\\\ q_{\\text{current},2} \\end{bmatrix}, \\begin{bmatrix} \\sigma^2 & 0 \\\\ 0 & \\sigma^2 \\end{bmatrix}\\right)",
+  "t_{\\nu}\\left(\\begin{bmatrix} q_{\\text{current},1} \\\\ q_{\\text{current},2} \\end{bmatrix}, \\begin{bmatrix} \\sigma^2 & 0 \\\\ 0 & \\sigma^2 \\end{bmatrix}\\right)",
+  "\\mathcal{N}\\left(\\begin{bmatrix} q_{\\text{current},1} \\\\ q_{\\text{current},2} \\end{bmatrix}, \\begin{bmatrix} \\Sigma_{11} & \\Sigma_{12} \\\\ \\Sigma_{12} & \\Sigma_{22} \\end{bmatrix}\\right)"
+)
+
+
 choices <- setNames(choices, choices_names)
+proposal_choices <- setNames(proposal_choices, proposal_choices_names)
+
 
 make_sidebar <- function() {
   tags$div(
@@ -63,68 +73,106 @@ make_sidebar <- function() {
     ),
     tags$div(
       class = "item",
-      tags$p("Controls", class = "sidebar-group-header"),
+      tags$p("Choose a sampling algorithm", class = "sidebar-group-header"),
+      shiny::selectizeInput(
+        "sampling_algorithm", NULL, choices = c("HMC" = "hmc", "Metropolis-Hastings" = "mh"), width = "100%"
+      )
+    ),
+    shiny::conditionalPanel(
+      condition = "input.sampling_algorithm == 'hmc'",
       tags$div(
-        style = "margin-bottom: 35px; margin-top: 45px",
-        rangeInput("path_length", min = 0.5, max = 5, step = 0.1, value = 2),
-        control_label(
-          "Path length",
-          shiny::icon("question-circle"),
-          "For how long to integrate the trajectory (aka integration time)"
+        class = "item",
+        tags$p("HMC Controls", class = "sidebar-group-header"),
+        tags$div(
+          style = "margin-bottom: 35px; margin-top: 45px",
+          rangeInput("path_length", min = 0.5, max = 5, step = 0.1, value = 2),
+          control_label(
+            "Path length",
+            shiny::icon("question-circle"),
+            "For how long to integrate the trajectory (aka integration time)"
+          )
+        ),
+        tags$div(
+          style = "margin-bottom: 35px",
+          rangeInput("step_size", min = 0.01, max = 0.5, step = 0.01, value = 0.05),
+          control_label(
+            "Step size",
+            shiny::icon("question-circle"),
+            "Time length of the discretization steps"
+          ),
+        ),
+        tags$div(
+            rangeInput("speed", step = 1, value = 3, labels = c("Slow", "Medium", "Fast", "Hurry")),
+            tags$p("Animation speed", class = "range-input-label")
+        ),
+        tags$div(
+          shiny::checkboxInput("draw_trajectory", "Draw Trajectory", TRUE)
+        ),
+        tags$div(
+          shiny::checkboxInput("manual_momentum", "Set momentum manually", FALSE)
+        ),
+        tags$div(
+          style = "display: flex; gap: 5px",
+          shinyjs::disabled(
+            shiny::numericInput(
+              "momentum_x", label = "X", value = 0.5, min = -4, max = 4, step = 0.1
+            )
+          ),
+          shinyjs::disabled(
+            shiny::numericInput(
+              "momentum_y", label = "Y", value = 0.5, min = -4, max = 4, step = 0.1
+            )
+          ),
         )
       ),
       tags$div(
-        style = "margin-bottom: 35px",
-        rangeInput("step_size", min = 0.01, max = 0.5, step = 0.01, value = 0.05),
-        control_label(
-          "Step size",
-          shiny::icon("question-circle"),
-          "Time length of the discretization steps"
+        class = "item",
+        tags$p("Actions", class = "sidebar-group-header"),
+        tags$div(
+          style = "display: flex; gap: 5px; margin-top: 20px; margin-bottom: 15px;",
+          shiny::actionButton("start_sampling", "Start sampling", width = "100%"),
+          shiny::actionButton("stop_sampling", "Stop sampling", disabled = TRUE, width = "100%")
         ),
-      ),
-      tags$div(
-          rangeInput("speed", step = 1, value = 3, labels = c("Slow", "Medium", "Fast", "Hurry")),
-          tags$p("Animation speed", class = "range-input-label")
-      ),
-       tags$div(
-        shiny::checkboxInput("draw_trajectory", "Draw Trajectory", TRUE)
-      ),
-      tags$div(
-        shiny::checkboxInput("manual_momentum", "Set momentum manually", FALSE)
-      ),
-      tags$div(
-        style = "display: flex; gap: 5px",
-        shinyjs::disabled(
-          shiny::numericInput(
-            "momentum_x", label = "X", value = 0.5, min = -4, max = 4, step = 0.1
-          )
+        tags$div(
+            style = "margin: 15px 0px;",
+            shiny::actionButton("add_point", "Sample a single point", width = "100%")
         ),
-        shinyjs::disabled(
-          shiny::numericInput(
-            "momentum_y", label = "Y", value = 0.5, min = -4, max = 4, step = 0.1
-          )
-        ),
+        tags$div(
+          style = "margin: 15px 0px;",
+          shiny::actionButton("remove_points", "Remove points", width = "100%")
+        )
       )
     ),
-    tags$div(
-      class = "item",
-      tags$p("Actions", class = "sidebar-group-header"),
+    shiny::conditionalPanel(
+      condition = "input.sampling_algorithm == 'mh'",
       tags$div(
-        style = "display: flex; gap: 5px; margin-top: 20px; margin-bottom: 15px;",
-        shiny::actionButton("start_sampling", "Start sampling", width = "100%"),
-        shiny::actionButton("stop_sampling", "Stop sampling", disabled = TRUE, width = "100%")
+        class = "item",
+        tags$p("MH Controls", class = "sidebar-group-header"),
+        tags$div(
+        id = "sidebar",
+          tags$div(
+            class = "item",
+            tags$p("Choose a proposal distribution", class = "sidebar-group-header"),
+            shiny::selectizeInput(
+              "proposal_distribution", NULL, proposal_choices, options = select_input_options, width = "100%"
+            )
+          )
+        ),
+        tags$div(
+          style = "margin-bottom: 35px; margin-top: 45px",
+          rangeInput("proposal_sd", min = 0.01, max = 2, step = 0.01, value = 0.1),
+          control_label(
+            "Proposal Standard Deviation",
+            shiny::icon("question-circle"),
+            "Standard deviation of the proposal distribution"
+          )
+        )
       ),
-      tags$div(
-          style = "margin: 15px 0px;",
-          shiny::actionButton("add_point", "Sample a single point", width = "100%")
-      ),
-      tags$div(
-        style = "margin: 15px 0px;",
-        shiny::actionButton("remove_points", "Remove points", width = "100%")
-      )
     )
   )
 }
+
+
 
 tex_panel_1 <- "U (\\boldsymbol{\\theta}) = - \\log[ p^*(\\boldsymbol{\\theta} \\mid \\boldsymbol{y})]"
 tex_panel_2 <- "p (\\boldsymbol{\\theta} \\mid \\boldsymbol{y})"

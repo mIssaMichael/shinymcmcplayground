@@ -178,7 +178,6 @@ server <- function(input, output, session) {
       point_z <- data$point$z
     } else {
       point_color <- "#00FF0080"
-
       segments_x <- head(data$segments$x, -1)
       segments_y <- head(data$segments$y, -1)
       segments_z <- head(data$segments$z, -1)

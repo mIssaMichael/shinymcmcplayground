@@ -6,7 +6,6 @@
   color: white;
   max-width: 500px;
   min-width: 350px;
-  overflow: hidden;
   padding: 10px;
   position: relative; /* For the resizable handle */
   width: 420px;
