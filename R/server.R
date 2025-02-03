@@ -100,36 +100,44 @@ server <- function(input, output, session) {
   dist <- shiny::reactiveVal()
   keep_sampling_rv <- shiny::reactiveVal(FALSE)
 
+  # Initialize/update sampler when distribution or algorithm changes
   shiny::observe({
-    # Set new value
     dist(DISTRIBUTIONS[[input$distribution]])
-
-    step_size <- shiny::isolate(input$step_size)
-    path_length <- shiny::isolate(input$path_length)
     initial_position <- INITIAL_POSITIONS[[shiny::isolate(input$distribution)]]
-
-    app_data$sampler <- SamplerHMC$new(
-      dist()$neg_logp,
-      dist()$neg_dlogp,
-      step_size = step_size,
-      path_length = path_length,
-      initial_position = initial_position
-    )
+    
+    if (input$sampling_algorithm == "hmc") {
+      step_size <- shiny::isolate(input$step_size)
+      path_length <- shiny::isolate(input$path_length)
+      
+      app_data$sampler <- SamplerHMC$new(
+        dist()$neg_logp,
+        dist()$neg_dlogp,
+        step_size = step_size,
+        path_length = path_length,
+        initial_position = initial_position
+      )
+    } else {
+      proposal_sd <- shiny::isolate(input$proposal_sd)
+      app_data$sampler <- SamplerMH$new(
+        dist()$neg_logp,
+        proposal_sd = proposal_sd,
+        initial_position = initial_position
+      )
+    }
 
     app_data$length_out <- LENGTHS_OUT[[input$distribution]]
-
+    
+    # Setup plotting ranges
     x_lims <- dist()$get_range_x()
     y_lims <- dist()$get_range_y()
-
     x <- seq(x_lims[1], x_lims[2], length.out = 101)
     y <- seq(y_lims[1], y_lims[2], length.out = 101)
     f <- dist()$neg_logp(expand.grid(x = x, y = y))
-
-    app_data$clip_z <- - dist()$get_max_logp_at_boundary()
+    
+    app_data$clip_z <- -dist()$get_max_logp_at_boundary()
     app_data$z_min <- min(f)
     app_data$z_upper <- (x_lims[2] - x_lims[1]) * 0.5
   })
-
 
   output$rglPlot <- rgl::renderRglwidget({
     shiny::req(dist())
@@ -143,103 +151,196 @@ server <- function(input, output, session) {
     rgl::rglwidget()
   })
 
-
-  # Reactively update the sampler's path length and step size
-  shiny::observe(
-    {
-      # Check step size is smaller than path length
+  # Reactively update the sampler's parameters
+  shiny::observe({
+    if (input$sampling_algorithm == "hmc") {
       req(input$step_size < input$path_length)
       app_data$sampler$set_path_length(input$path_length)
       app_data$sampler$set_step_size(input$step_size)
+    } else {
+      req(input$proposal_sd)
+      app_data$sampler$set_proposal_sd(input$proposal_sd)
     }
-  )
+  })
 
+  # Handle sampling events
   shiny::observeEvent(list(input$add_point, input$continue_sampling), {
-    # Add trajectory and point to the first subscene
-    momentum_xy <- c(isolate(input$momentum_x), isolate(input$momentum_y))
-    if (isolate(input$manual_momentum)) {
-      app_data$sampler_data <- app_data$sampler$generate_xyz(momentum_xy)
-    } else {
-      app_data$sampler_data <- app_data$sampler$generate_xyz()
-    }
+    if (input$sampling_algorithm == "hmc") {
+      # HMC sampling and visualization
+      momentum_xy <- c(isolate(input$momentum_x), isolate(input$momentum_y))
+      if (isolate(input$manual_momentum)) {
+        app_data$sampler_data <- app_data$sampler$generate_xyz(momentum_xy)
+      } else {
+        app_data$sampler_data <- app_data$sampler$generate_xyz()
+      }
 
-    data <- app_data$sampler_data
+      data <- app_data$sampler_data
 
-    momentum <- paste0("(", round(data$momentum$x, 3), ", ", round(data$momentum$y, 3), ")")
-    shinyjs::html("text_momentum", paste("Momentum:", momentum))
+      momentum <- paste0("(", round(data$momentum$x, 3), ", ", round(data$momentum$y, 3), ")")
+      shinyjs::html("text_momentum", paste("Momentum:", momentum))
 
-    if (data$accepted) {
-      point_color <- "#8F272780"
-      segments_x <- data$segments$x
-      segments_y <- data$segments$y
-      segments_z <- data$segments$z
-      point_x <- data$point$x
-      point_y <- data$point$y
-      point_z <- data$point$z
-    } else {
-      point_color <- "#00FF0080"
-      segments_x <- head(data$segments$x, -1)
-      segments_y <- head(data$segments$y, -1)
-      segments_z <- head(data$segments$z, -1)
-      point_x <- tail(segments_x, 1)
-      point_y <- tail(segments_y, 1)
-      point_z <- tail(segments_z, 1)
-    }
+      if (data$accepted) {
+        point_color <- "#8F272780"
+        segments_x <- data$segments$x
+        segments_y <- data$segments$y
+        segments_z <- data$segments$z
+        point_x <- data$point$x
+        point_y <- data$point$y
+        point_z <- data$point$z
+      } else {
+        point_color <- "#00FF0080"
+        segments_x <- head(data$segments$x, -1)
+        segments_y <- head(data$segments$y, -1)
+        segments_z <- head(data$segments$z, -1)
+        point_x <- tail(segments_x, 1)
+        point_y <- tail(segments_y, 1)
+        point_z <- tail(segments_z, 1)
+      }
 
-    # Add momentum arrow
-    app_data$arrow_obj <- rgl::arrow3d(
-      p0 = c(segments_x[1], segments_y[1], 0),
-      p1 = c(data$momentum$x, data$momentum$y, 0),
-      color = "#000000",
-      n = 2,
-      barblen = 0.02,
-      width = 1 / 2,
-      type = "lines"
-    )
-
-    subscene <- rgl::subsceneList()[[1]]
-    msg_objects <- get_objects(list(app_data$arrow_obj), subscene)
-    session$sendCustomMessage(
-      "addToRglPlot",
-      list(id = "rglPlot", objects = msg_objects, subscene = subscene)
-    )
-
-    # Create segments and point objects, adjusting the height 'z'
-    segments_z <- arbitrary_scale(
-      segments_z, 0, app_data$z_upper, x_min = app_data$z_min, x_max = app_data$clip_z
-    )
-
-    point_z <- arbitrary_scale(
-      point_z, 0, app_data$z_upper, x_min = app_data$z_min, x_max = app_data$clip_z
-    )
-
-    segments <- make_trajectory_segments(x = segments_x, y = segments_y, z = segments_z)
-
-    point <- rgl::points3d(
-        x = point_x, y = point_y, z = point_z, color = point_color, size = 4
-    )
-
-    # Add segments and points to the subscene
-    objects_list <- c(segments, point)
-    msg_objects <- get_objects(objects_list, subscene)
-
-    session$sendCustomMessage(
-      "drawTrajectoryHMC",
-      list(
-        id = "rglPlot",
-        objects = msg_objects,
-        subscene = subscene,
-        completed_id = "trajectory_done",
-        total_time = SPEED_TO_MS[[input$speed]],
-        draw_trajectory = input$draw_trajectory
+      # Add momentum arrow
+      app_data$arrow_obj <- rgl::arrow3d(
+        p0 = c(segments_x[1], segments_y[1], 0),
+        p1 = c(data$momentum$x, data$momentum$y, 0),
+        color = "#000000",
+        n = 2,
+        barblen = 0.02,
+        width = 1 / 2,
+        type = "lines"
       )
-    )
-    points_objects_dev1$push(point)
-  }, ignoreInit = TRUE)
-    
 
+      subscene <- rgl::subsceneList()[[1]]
+      msg_objects <- get_objects(list(app_data$arrow_obj), subscene)
+      session$sendCustomMessage(
+        "addToRglPlot",
+        list(id = "rglPlot", objects = msg_objects, subscene = subscene)
+      )
 
-  
+      segments_z <- arbitrary_scale(
+        segments_z, 0, app_data$z_upper, x_min = app_data$z_min, x_max = app_data$clip_z
+      )
+
+      point_z <- arbitrary_scale(
+        point_z, 0, app_data$z_upper, x_min = app_data$z_min, x_max = app_data$clip_z
+      )
+
+      segments <- make_trajectory_segments(x = segments_x, y = segments_y, z = segments_z)
+
+      point <- rgl::points3d(
+        x = point_x, y = point_y, z = point_z, color = point_color, size = 4
+      )
+
+      objects_list <- c(segments, point)
+      msg_objects <- get_objects(objects_list, subscene)
+
+      session$sendCustomMessage(
+        "drawTrajectoryHMC",
+        list(
+          id = "rglPlot",
+          objects = msg_objects,
+          subscene = subscene,
+          completed_id = "trajectory_done",
+          total_time = SPEED_TO_MS[[input$speed]],
+          draw_trajectory = input$draw_trajectory
+        )
+      )
+      points_objects_dev1$push(point)
+
+    } else if (input$sampling_algorithm == "mh"){
+      # MH sampling and visualization
+
+      data <- app_data$sampler$generate_xyz()
+      
+      # Scale z coordinates for visualization
+      current_z <- arbitrary_scale(
+        data$segments$z[1], 0, app_data$z_upper, 
+        x_min = app_data$z_min, x_max = app_data$clip_z
+      )
+      proposal_z <- arbitrary_scale(
+        data$segments$z[2], 0, app_data$z_upper, 
+        x_min = app_data$z_min, x_max = app_data$clip_z
+      )
+      
+      # Create 3D arrow from current to proposal
+      arrow_obj <- rgl::arrow3d(
+        p0 = c(data$segments$x[1], data$segments$y[1], current_z),
+        p1 = c(data$segments$x[2], data$segments$y[2], proposal_z),
+        color = if(data$accepted) "#00000080" else "#00FF0080",
+        n = 2,
+        barblen = 0.02,
+        width = 1 / 2,
+        type = "lines"
+      )
+      
+      # Add arrow to first subscene
+      subscene1 <- rgl::subsceneList()[[1]]
+      msg_objects <- get_objects(list(arrow_obj), subscene1)
+      session$sendCustomMessage(
+        "addToRglPlot",
+        list(id = "rglPlot", objects = msg_objects, subscene = subscene1)
+      )
+
+      point1 <- rgl::points3d(
+        x = if(data$accepted) data$point$x else data$segments$x[2],
+        y = if(data$accepted) data$point$y else data$segments$y[2],
+        z = if(data$accepted) current_z else proposal_z,
+        color = if(data$accepted) "#8F2727" else "#00FF0080",
+        size = 4
+      )
+
+      points_objects_dev1$push(point1)
+      msg_objects <- get_objects(list(point1), subscene1)
+      session$sendCustomMessage(
+          "addToRglPlot",
+          list(id = "rglPlot", objects = msg_objects, subscene = subscene1)
+      )
+
+      # If accepted, add point to both subscenes
+      if (data$accepted) {
+        # Add point to second subscene (flat projection)
+        subscene2 <- rgl::subsceneList()[[2]]
+        point2 <- rgl::points3d(
+          x = data$point$x,
+          y = data$point$y,
+          z = 0,
+          color = '#8F2727',
+          size = 4
+        )
+        points_objects_dev2$push(point2)
+        msg_objects <- get_objects(list(point2), subscene2)
+        session$sendCustomMessage(
+          "addToRglPlot",
+          list(id = "rglPlot", objects = msg_objects, subscene = subscene2)
+        )
+      }
+      
+      # Update UI elements
+      position <- paste0(
+        "(", 
+        round(data$segments$x[1], 3), 
+        ", ", 
+        round(data$segments$y[1], 3), 
+        ")"
+      )
+      shinyjs::html("text_position", paste("Position:", position))
+      
+      status <- if (data$accepted) "Accepted" else "Rejected"
+      shinyjs::html("text_status", paste("Status:", status))
+
+      Sys.sleep(0.15)
+      
+      
+      session$sendCustomMessage(
+        "deleteFromRglPlot",
+        list(id = "rglPlot", objects = list(arrow_obj), subscene = subscene1)
+      )
+      
+      # Continue sampling if in continuous mode
+      if (isolate(keep_sampling_rv())) {
+        session$sendCustomMessage("updateInputValue", list(id = "continue_sampling"))
+      }
+    }
+  })
+
   shiny::observeEvent(input$manual_momentum, {
     if (input$manual_momentum) {
       shinyjs::enable("momentum_x")
@@ -250,51 +351,46 @@ server <- function(input, output, session) {
     }
   })
 
-  # `input$trajectory_done` is changed when the program finishes plotting the trajectory
+  # Handle trajectory completion
   shiny::observeEvent(input$trajectory_done, {
+    if (input$sampling_algorithm == "hmc") {
+      data <- app_data$sampler_data
 
-    data <- app_data$sampler_data
+      status <- if (isTRUE(data$accepted)) "Accepted" else "Rejected"
+      position <- paste0("(", round(data$point$x, 3), ", ", round(data$point$y, 3), ")")
+      
+      shinyjs::html("text_position", paste("Position:", position))
+      shinyjs::html("text_status", paste("Status:", status))
 
-    # Update statistics on the first subscene
-    status <- if (isTRUE(data$accepted)) "Accepted" else "Rejected"
+      energy_diff <- round(data$h_current - data$h_proposal, 5)
+      shinyjs::html("text_h_diff", paste("H(current) - H(proposal):", energy_diff))
 
-    position <- paste0("(", round(data$point$x, 3), ", ", round(data$point$y, 3), ")")
-    shinyjs::html("text_position", paste("Position:", position))
+      divergent <- if (data$divergent) "Yes" else "No"
+      shinyjs::html("text_divergent", paste("Divergent:", divergent))
 
-    shinyjs::html("text_status", paste("Status:", status))
+      if (data$accepted) {
+        point <- rgl::points3d(
+          x = data$point$x, y = data$point$y, z = 0, color = '#8F2727', size = 4
+        )
+        subscene <- rgl::subsceneList()[[2]]
+        msg_objects <- get_objects(list(point), subscene)
+        session$sendCustomMessage(
+          "addToRglPlot",
+          list(id = "rglPlot", objects = msg_objects, subscene = subscene)
+        )
+        points_objects_dev2$push(point)
+      }
 
-    energy_diff <- round(data$h_current - data$h_proposal, 5)
-    shinyjs::html("text_h_diff", paste("H(current) - H(proposal):", energy_diff))
+      if (isolate(keep_sampling_rv())) {
+        session$sendCustomMessage("updateInputValue", list(id = "continue_sampling"))
+      }
 
-    divergent <- if (data$divergent) "Yes" else "No"
-    shinyjs::html("text_divergent", paste("Divergent:", divergent))
-
-    # Add the sampled point to the second subscene, where we have the density function.
-    shiny::req(input$trajectory_done)
-    subscene <- rgl::subsceneList()[[2]]
-
-    if (data$accepted) {
-      point <- rgl::points3d(
-        x = data$point$x, y = data$point$y, z = 0, color = '#8F2727', size = 4
-      )
-      msg_objects <- get_objects(list(point), subscene)
+      subscene <- rgl::subsceneList()[[1]]
       session$sendCustomMessage(
-        "addToRglPlot",
-        list(id = "rglPlot", objects = msg_objects, subscene = subscene)
+        "deleteFromRglPlot",
+        list(id = "rglPlot", objects = list(app_data$arrow_obj), subscene = subscene)
       )
-      points_objects_dev2$push(point)
     }
-
-    if (isolate(keep_sampling_rv())) {
-      session$sendCustomMessage("updateInputValue", list(id = "continue_sampling"))
-    }
-
-    # Delete the momentum arrow on the first subscene
-    subscene <- rgl::subsceneList()[[1]]
-    session$sendCustomMessage(
-      "deleteFromRglPlot",
-      list(id = "rglPlot", objects = list(app_data$arrow_obj), subscene = subscene)
-    )
   })
 
   # Start sampling
@@ -314,7 +410,7 @@ server <- function(input, output, session) {
     keep_sampling_rv(FALSE)
   })
 
-  # Remove all sampled points from all subscenes
+  # Remove all sampled points
   shiny::observeEvent(input$remove_points, {
     # Remove points from the first subscene
     subscene <- rgl::subsceneList()[[1]]

@@ -14,3 +14,5 @@ app_sys <- function(...) {
   options(rgl.useNULL = FALSE)
   shiny::removeResourcePath("www")
 }
+
+

@@ -1,6 +1,5 @@
 #' @importFrom shiny tags
 
-
 tooltip <- function(label, content) {
   tags$div(
     class = "control-label-tooltip",
@@ -41,7 +40,6 @@ select_input_options <- list(
 )
 
 choices <- c("normal_1", "normal_2", "normal_3", "normal_mixture", "banana", "funnel")
-proposal_choices <- c("normal", "t-distribution", "normal_mixture")
 choices_names <- c(
   "\\mathcal{N}\\left(\\begin{bmatrix} 0 \\\\ 0 \\end{bmatrix}, \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix}\\right)",
   "\\mathcal{N}\\left(\\begin{bmatrix} 0 \\\\ 0 \\end{bmatrix}, \\begin{bmatrix} 1 & 0.3 \\\\ 0.3 & 1 \\end{bmatrix}\\right)",
@@ -50,16 +48,8 @@ choices_names <- c(
   "\\text{Rosenbrock's Banana}",
   "\\text{Neal's Funnel}"
 )
-proposal_choices_names <- c(
-  "\\mathcal{N}\\left(\\begin{bmatrix} q_{\\text{current},1} \\\\ q_{\\text{current},2} \\end{bmatrix}, \\begin{bmatrix} \\sigma^2 & 0 \\\\ 0 & \\sigma^2 \\end{bmatrix}\\right)",
-  "t_{\\nu}\\left(\\begin{bmatrix} q_{\\text{current},1} \\\\ q_{\\text{current},2} \\end{bmatrix}, \\begin{bmatrix} \\sigma^2 & 0 \\\\ 0 & \\sigma^2 \\end{bmatrix}\\right)",
-  "\\mathcal{N}\\left(\\begin{bmatrix} q_{\\text{current},1} \\\\ q_{\\text{current},2} \\end{bmatrix}, \\begin{bmatrix} \\Sigma_{11} & \\Sigma_{12} \\\\ \\Sigma_{12} & \\Sigma_{22} \\end{bmatrix}\\right)"
-)
-
 
 choices <- setNames(choices, choices_names)
-proposal_choices <- setNames(proposal_choices, proposal_choices_names)
-
 
 make_sidebar <- function() {
   tags$div(
@@ -75,7 +65,9 @@ make_sidebar <- function() {
       class = "item",
       tags$p("Choose a sampling algorithm", class = "sidebar-group-header"),
       shiny::selectizeInput(
-        "sampling_algorithm", NULL, choices = c("HMC" = "hmc", "Metropolis-Hastings" = "mh"), width = "100%"
+        "sampling_algorithm", NULL, 
+        choices = c("Hamiltonian Monte Carlo" = "hmc", "Metropolis-Hastings" = "mh"), 
+        width = "100%"
       )
     ),
     shiny::conditionalPanel(
@@ -102,8 +94,8 @@ make_sidebar <- function() {
           ),
         ),
         tags$div(
-            rangeInput("speed", step = 1, value = 3, labels = c("Slow", "Medium", "Fast", "Hurry")),
-            tags$p("Animation speed", class = "range-input-label")
+          rangeInput("speed", step = 1, value = 3, labels = c("Slow", "Medium", "Fast", "Hurry")),
+          tags$p("Animation speed", class = "range-input-label")
         ),
         tags$div(
           shiny::checkboxInput("draw_trajectory", "Draw Trajectory", TRUE)
@@ -124,23 +116,6 @@ make_sidebar <- function() {
             )
           ),
         )
-      ),
-      tags$div(
-        class = "item",
-        tags$p("Actions", class = "sidebar-group-header"),
-        tags$div(
-          style = "display: flex; gap: 5px; margin-top: 20px; margin-bottom: 15px;",
-          shiny::actionButton("start_sampling", "Start sampling", width = "100%"),
-          shiny::actionButton("stop_sampling", "Stop sampling", disabled = TRUE, width = "100%")
-        ),
-        tags$div(
-            style = "margin: 15px 0px;",
-            shiny::actionButton("add_point", "Sample a single point", width = "100%")
-        ),
-        tags$div(
-          style = "margin: 15px 0px;",
-          shiny::actionButton("remove_points", "Remove points", width = "100%")
-        )
       )
     ),
     shiny::conditionalPanel(
@@ -149,30 +124,36 @@ make_sidebar <- function() {
         class = "item",
         tags$p("MH Controls", class = "sidebar-group-header"),
         tags$div(
-        id = "sidebar",
-          tags$div(
-            class = "item",
-            tags$p("Choose a proposal distribution", class = "sidebar-group-header"),
-            shiny::selectizeInput(
-              "proposal_distribution", NULL, proposal_choices, options = select_input_options, width = "100%"
-            )
-          )
-        ),
-        tags$div(
           style = "margin-bottom: 35px; margin-top: 45px",
           rangeInput("proposal_sd", min = 0.01, max = 2, step = 0.01, value = 0.1),
           control_label(
             "Proposal Standard Deviation",
             shiny::icon("question-circle"),
-            "Standard deviation of the proposal distribution"
+            "Controls how far the proposal can move from the current position"
           )
         )
+      )
+    ),
+    # Common Actions section for both algorithms
+    tags$div(
+      class = "item",
+      tags$p("Actions", class = "sidebar-group-header"),
+      tags$div(
+        style = "display: flex; gap: 5px; margin-top: 20px; margin-bottom: 15px;",
+        shiny::actionButton("start_sampling", "Start sampling", width = "100%"),
+        shiny::actionButton("stop_sampling", "Stop sampling", disabled = TRUE, width = "100%")
       ),
+      tags$div(
+        style = "margin: 15px 0px;",
+        shiny::actionButton("add_point", "Sample a single point", width = "100%")
+      ),
+      tags$div(
+        style = "margin: 15px 0px;",
+        shiny::actionButton("remove_points", "Remove points", width = "100%")
+      )
     )
   )
 }
-
-
 
 tex_panel_1 <- "U (\\boldsymbol{\\theta}) = - \\log[ p^*(\\boldsymbol{\\theta} \\mid \\boldsymbol{y})]"
 tex_panel_2 <- "p (\\boldsymbol{\\theta} \\mid \\boldsymbol{y})"
@@ -180,7 +161,10 @@ tex_panel_2 <- "p (\\boldsymbol{\\theta} \\mid \\boldsymbol{y})"
 make_body <- function() {
   tags$div(
     style = "margin: 10px",
-    tags$h2("Hamiltonian Monte Carlo", class = "body-header"),
+    tags$h2(
+      shiny::textOutput("algorithm_title", inline = TRUE), 
+      class = "body-header"
+    ),
     tags$div(
       class = "plot-container",
       tags$div(htmltools::HTML(katex::katex_html(tex_panel_1, preview = FALSE))),
@@ -191,8 +175,23 @@ make_body <- function() {
       rgl::rglwidgetOutput("rglPlot", width = "100%")
     ),
     tags$div(
+      class = "sampling-info",
+      tags$div(id = "text_position", "Position: (0, 0)"),
+      tags$div(id = "text_status", "Status: -"),
+      shiny::conditionalPanel(
+        condition = "input.sampling_algorithm == 'hmc'",
+        tags$div(id = "text_momentum", "Momentum: (0, 0)"),
+        tags$div(id = "text_h_diff", "H(current) - H(proposal): 0"),
+        tags$div(id = "text_divergent", "Divergent: No")
+      ),
+      shiny::conditionalPanel(
+        condition = "input.sampling_algorithm == 'mh'",
+        tags$div(id = "text_acceptance_ratio", "Log acceptance ratio: 0")
+      )
+    ),
+    tags$div(
       style = "padding-left: 10px;",
-      tags$h2("Shut 🤓", class = "details-header"),
+      tags$h2("Details", class = "details-header"),
       tags$div(
         class = "accordion",
         accordionItem(
@@ -245,7 +244,7 @@ accordionItem <- function(label, content) {
 
 ui <- function() {
   header <- tags$head(
-    tags$title("Shiny HMC"),
+    tags$title("MCMC Sampling Visualization"),
     tags$link(rel = "icon", type = "image/png", sizes = "64x64", href = "www/alpine.png"),
     tags$script(type = "text/javascript", src = "www/hmc.js"),
     tags$script(type = "text/javascript", src = "www/sidebar.js"),
@@ -261,7 +260,7 @@ ui <- function() {
       src = "https://cdn.jsdelivr.net/npm/katex@0.10.0-beta/dist/katex.min.js",
       integrity = "sha384-U8Vrjwb8fuHMt6ewaCy8uqeUXv4oitYACKdB0VziCerzt011iQ/0TqlSlv8MReCm",
       crossorigin = "anonymous"
-    ),
+    )
   )
 
   body <- tags$body(
@@ -273,29 +272,3 @@ ui <- function() {
   ui <- do.call(htmltools::tagList, list(body, header))
   htmltools::attachDependencies(ui, shiny::bootstrapLib())
 }
-
-# tags$div(
-#   class = "item",
-#   style = "margin-top:auto",
-#   tags$div(
-#     class = "ui grid",
-#     style = "margin: 0; padding:bottom: 1em",
-#     tags$div(
-#       class = "row",
-#       ui_col(
-#         width = 16,
-#         style = paste(
-#           "font-weight: bold",
-#           "text-align: center",
-#           sep = ";"
-#         ),
-#         actionLink(
-#           "how_to",
-#           "How to use this app?",
-#           style = "font-size:16px;",
-#           class = "footer-link"
-#         )
-#       )
-#     )
-#   )
-# )
