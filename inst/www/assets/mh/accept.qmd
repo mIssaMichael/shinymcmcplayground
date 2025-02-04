@@ -1,0 +1,8 @@
+The Metropolis-Hastings acceptance probability ensures that the Markov chain converges to the target distribution. For a proposed move from state $\boldsymbol{\theta}$ to $\boldsymbol{\theta}'$, the acceptance probability is
+$$
+\alpha(\boldsymbol{\theta}', \boldsymbol{\theta}) = \min\left(1, \frac{p(\boldsymbol{\theta}')q(\boldsymbol{\theta} \mid \boldsymbol{\theta}')}{p(\boldsymbol{\theta})q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})}\right)
+$$
+For symmetric proposals where $q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = q(\boldsymbol{\theta} \mid \boldsymbol{\theta}')$, this simplifies to
+$$
+\alpha(\boldsymbol{\theta}', \boldsymbol{\theta}) = \min\left(1, \frac{p(\boldsymbol{\theta}')}{p(\boldsymbol{\theta})}\right)
+$$

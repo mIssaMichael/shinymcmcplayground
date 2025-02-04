@@ -1,0 +1,15 @@
+The algorithm requires a proposal distribution $q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})$ that suggests new states. In our implementation, we use a multivariate Gaussian random walk proposal:
+$$
+\begin{aligned}
+\boldsymbol{\theta}' &\sim \mathcal{N}(\boldsymbol{\theta}, \boldsymbol{\Sigma}) \
+\end{aligned}
+$$
+where $\boldsymbol{\Sigma}$ is the covariance matrix that determines the scale and correlation structure of the proposed moves. This is a symmetric proposal distribution, meaning $q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) = q(\boldsymbol{\theta} \mid \boldsymbol{\theta}')$, which simplifies the acceptance probability calculation.
+Other common choices for proposal distributions include:
+$$
+\begin{aligned}
+\text{Independent:} \quad \boldsymbol{\theta}' &\sim q(\boldsymbol{\theta}') \\
+\text{Component-wise:} \quad \theta_i' &\sim q(\theta_i' \mid \theta_i)
+\end{aligned}
+$$
+The choice of proposal distribution affects the efficiency of the algorithm but not its correctness, as long as it satisfies basic regularity conditions. For the multivariate Gaussian case, the efficiency is particularly sensitive to the choice of $\boldsymbol{\Sigma}$, which should be tuned to match the scale and correlation structure of the target distribution.

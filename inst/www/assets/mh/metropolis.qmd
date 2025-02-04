@@ -1,0 +1,12 @@
+The Metropolis-Hastings algorithm generates samples from a target distribution $p(\boldsymbol{\theta})$ by using a proposal distribution $q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})$. The algorithm draws from the joint distribution
+$$
+p(\boldsymbol{\theta}', \boldsymbol{\theta}) = q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) p(\boldsymbol{\theta})
+$$
+The transition probability can be expressed as
+$$
+\begin{aligned}
+T(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) &= q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \alpha(\boldsymbol{\theta}', \boldsymbol{\theta}) \\
+&= q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}) \min\left(1, \frac{p(\boldsymbol{\theta}')q(\boldsymbol{\theta} \mid \boldsymbol{\theta}')}{p(\boldsymbol{\theta})q(\boldsymbol{\theta}' \mid \boldsymbol{\theta})}\right)
+\end{aligned}
+$$
+where $\alpha(\boldsymbol{\theta}', \boldsymbol{\theta})$ is the acceptance probability.

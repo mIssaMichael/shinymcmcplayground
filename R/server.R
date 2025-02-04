@@ -105,6 +105,26 @@ server <- function(input, output, session) {
     dist(DISTRIBUTIONS[[input$distribution]])
     initial_position <- INITIAL_POSITIONS[[shiny::isolate(input$distribution)]]
     
+
+    if (!is.null(input$sampling_algorithm)) {
+      # Remove points from the first subscene
+      subscene1 <- rgl::subsceneList()[[1]]
+      session$sendCustomMessage(
+        "deleteFromRglPlot",
+        list(id = "rglPlot", objects = points_objects_dev1$items, subscene = subscene1)
+      )
+      points_objects_dev1$clear()
+
+      # Remove points from the second subscene
+      subscene2 <- rgl::subsceneList()[[2]]
+      session$sendCustomMessage(
+        "deleteFromRglPlot",
+        list(id = "rglPlot", objects = points_objects_dev2$items, subscene = subscene2)
+      )
+      points_objects_dev2$clear()
+    }
+    
+    
     if (input$sampling_algorithm == "hmc") {
       step_size <- shiny::isolate(input$step_size)
       path_length <- shiny::isolate(input$path_length)

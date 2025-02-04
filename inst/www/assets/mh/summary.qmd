@@ -1,0 +1,14 @@
+Start at an initial position $\boldsymbol{\theta}^{(0)}$. For iterations $t = 1,\ldots,T$:
+
+1. Generate a proposal $\boldsymbol{\theta}'$ from $q(\boldsymbol{\theta}' \mid \boldsymbol{\theta}^{(t-1)})$
+1. Calculate the acceptance probability $\alpha(\boldsymbol{\theta}', \boldsymbol{\theta}^{(t-1)})$
+1. Draw $u \sim \text{Uniform}(0,1)$
+1. If $u < \alpha(\boldsymbol{\theta}', \boldsymbol{\theta}^{(t-1)})$, set $\boldsymbol{\theta}^{(t)} = \boldsymbol{\theta}'$; otherwise set $\boldsymbol{\theta}^{(t)} = \boldsymbol{\theta}^{(t-1)}$
+ 
+#### Resources
+
+Further details on the Metropolis-Hastings algorithm can be found here:
+
+* [Equation of State Calculations by Fast Computing Machines](https://bayes.wustl.edu/Manual/EquationOfState.pdf)
+* [Metropolis–Hastings algorithm](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm)
+* [Handbook of Markov Chain Monte Carlo](https://www.routledge.com/Handbook-of-Markov-Chain-Monte-Carlo/Brooks-Gelman-Jones-Meng/p/book/9781420079418)

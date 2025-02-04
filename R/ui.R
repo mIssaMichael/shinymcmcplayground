@@ -159,6 +159,7 @@ tex_panel_1 <- "U (\\boldsymbol{\\theta}) = - \\log[ p^*(\\boldsymbol{\\theta} \
 tex_panel_2 <- "p (\\boldsymbol{\\theta} \\mid \\boldsymbol{y})"
 
 make_body <- function() {
+  
   tags$div(
     style = "margin: 10px",
     tags$h2(
@@ -174,61 +175,87 @@ make_body <- function() {
       style = "padding: 0px 10px",
       rgl::rglwidgetOutput("rglPlot", width = "100%")
     ),
-    tags$div(
-      class = "sampling-info",
-      tags$div(id = "text_position", "Position: (0, 0)"),
-      tags$div(id = "text_status", "Status: -"),
       shiny::conditionalPanel(
         condition = "input.sampling_algorithm == 'hmc'",
-        tags$div(id = "text_momentum", "Momentum: (0, 0)"),
-        tags$div(id = "text_h_diff", "H(current) - H(proposal): 0"),
-        tags$div(id = "text_divergent", "Divergent: No")
-      ),
-      shiny::conditionalPanel(
-        condition = "input.sampling_algorithm == 'mh'",
-        tags$div(id = "text_acceptance_ratio", "Log acceptance ratio: 0")
+        tags$div(
+        style = "padding-left: 10px;",
+        tags$h2("Details", class = "details-header"),
+        tags$div(
+          class = "accordion",
+          accordionItem(
+            "The Hamiltonian",
+            htmltools::HTML(
+              katex::render_math_in_html(app_sys("www/assets/hmc/hamiltonian.html"), include_css = FALSE)
+            )
+          ),
+          tags$hr(),
+          accordionItem(
+            "Hamilton's Equations",
+            htmltools::HTML(
+              katex::render_math_in_html(app_sys("www/assets/hmc/hamiltons.html"), include_css = FALSE)
+            )
+          ),
+          tags$hr(),
+          accordionItem(
+            "Leapfrog Integrator",
+            htmltools::HTML(
+              katex::render_math_in_html(app_sys("www/assets/hmc/leapfrog.html"), include_css = FALSE)
+            )
+          ),
+          tags$hr(),
+          accordionItem(
+            "Metropolis Acceptance Criteria",
+            htmltools::HTML(
+              katex::render_math_in_html(app_sys("www/assets/hmc/accept.html"), include_css = FALSE)
+            )
+          ),
+          tags$hr(),
+          accordionItem(
+            "Summary",
+            htmltools::HTML(
+              katex::render_math_in_html(app_sys("www/assets/hmc/summary.html"), include_css = FALSE)
+            )
+          ),
+          tags$hr()
+        )
       )
     ),
-    tags$div(
-      style = "padding-left: 10px;",
-      tags$h2("Details", class = "details-header"),
+    shiny::conditionalPanel(
+      condition = "input.sampling_algorithm =='mh'",
       tags$div(
-        class = "accordion",
-        accordionItem(
-          "The Hamiltonian",
-          htmltools::HTML(
-            katex::render_math_in_html(app_sys("www/assets/hamiltonian.html"), include_css = FALSE)
-          )
-        ),
-        tags$hr(),
-        accordionItem(
-          "Hamilton's equations",
-          htmltools::HTML(
-            katex::render_math_in_html(app_sys("www/assets/hamiltons.html"), include_css = FALSE)
-          )
-        ),
-        tags$hr(),
-        accordionItem(
-          "Leapfrog integrator",
-          htmltools::HTML(
-            katex::render_math_in_html(app_sys("www/assets/leapfrog.html"), include_css = FALSE)
-          )
-        ),
-        tags$hr(),
-        accordionItem(
-          "Metropolis acceptance criteria",
-          htmltools::HTML(
-            katex::render_math_in_html(app_sys("www/assets/accept.html"), include_css = FALSE)
-          )
-        ),
-        tags$hr(),
-        accordionItem(
-          "Summary",
-          htmltools::HTML(
-            katex::render_math_in_html(app_sys("www/assets/summary.html"), include_css = FALSE)
-          )
-        ),
-        tags$hr()
+        style = "padding-left: 10px;",
+        tags$h2("Details", class = "details-header"),
+        tags$div(
+          class = "accordion",
+          accordionItem(
+            "The Proposal Distiribution",
+            htmltools::HTML(
+              katex::render_math_in_html(app_sys("www/assets/mh/proposal.html"), include_css = FALSE)
+            )
+          ),
+          tags$hr(),
+          accordionItem(
+            "Metropolis Acceptance Criteria",
+            htmltools::HTML(
+              katex::render_math_in_html(app_sys("www/assets/mh/accept.html"), include_css = FALSE)
+            )
+          ),
+          tags$hr(),
+          accordionItem(
+            "Metropolis-Hastings",
+            htmltools::HTML(
+              katex::render_math_in_html(app_sys("www/assets/mh/metropolis.html"), include_css = FALSE)
+            )
+          ),
+          tags$hr(),
+          accordionItem(
+            "Summary",
+            htmltools::HTML(
+              katex::render_math_in_html(app_sys("www/assets/mh/summary.html"), include_css = FALSE)
+            )
+          ),
+          tags$hr()
+        )
       )
     )
   )
