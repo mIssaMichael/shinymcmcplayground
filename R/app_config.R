@@ -1,5 +1,5 @@
 app_sys <- function(...) {
-  system.file(..., package = "shinyhmc", mustWork = TRUE)
+  system.file(..., package = "shinymcmcplayground", mustWork = TRUE)
 }
 
 .onLoad <- function(libname, pkgname) {

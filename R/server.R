@@ -100,30 +100,78 @@ server <- function(input, output, session) {
   dist <- shiny::reactiveVal()
   keep_sampling_rv <- shiny::reactiveVal(FALSE)
 
-  # Initialize/update sampler when distribution or algorithm changes
-  shiny::observe({
-    dist(DISTRIBUTIONS[[input$distribution]])
-    initial_position <- INITIAL_POSITIONS[[shiny::isolate(input$distribution)]]
+  # Helper function to clean up visualization state
+  cleanup_visualization <- function() {
+    # Stop any ongoing sampling
+    keep_sampling_rv(FALSE)
+    shinyjs::enable("start_sampling")
+    shinyjs::enable("add_point")
+    shinyjs::disable("stop_sampling")
     
-
-    if (!is.null(input$sampling_algorithm)) {
-      # Remove points from the first subscene
-      subscene1 <- rgl::subsceneList()[[1]]
+    # Remove all points from both subscenes
+    if (!is.null(points_objects_dev1$items) && length(points_objects_dev1$items) > 0) {
+      subscene <- rgl::subsceneList()[[1]]
       session$sendCustomMessage(
         "deleteFromRglPlot",
-        list(id = "rglPlot", objects = points_objects_dev1$items, subscene = subscene1)
+        list(id = "rglPlot", objects = points_objects_dev1$items, subscene = subscene)
       )
       points_objects_dev1$clear()
-
-      # Remove points from the second subscene
-      subscene2 <- rgl::subsceneList()[[2]]
+    }
+    
+    if (!is.null(points_objects_dev2$items) && length(points_objects_dev2$items) > 0) {
+      subscene <- rgl::subsceneList()[[2]]
       session$sendCustomMessage(
         "deleteFromRglPlot",
-        list(id = "rglPlot", objects = points_objects_dev2$items, subscene = subscene2)
+        list(id = "rglPlot", objects = points_objects_dev2$items, subscene = subscene)
       )
       points_objects_dev2$clear()
     }
     
+    # Clear any remaining arrows
+    if (!is.null(app_data$arrow_obj)) {
+      subscene <- rgl::subsceneList()[[1]]
+      session$sendCustomMessage(
+        "deleteFromRglPlot",
+        list(id = "rglPlot", objects = list(app_data$arrow_obj), subscene = subscene)
+      )
+      app_data$arrow_obj <- NULL
+    }
+    
+    # Reset UI elements
+    shinyjs::html("text_position", "Position: -")
+    shinyjs::html("text_status", "Status: -")
+    shinyjs::html("text_momentum", "Momentum: -")
+    shinyjs::html("text_h_diff", "H(current) - H(proposal): -")
+    shinyjs::html("text_divergent", "Divergent: -")
+  }
+
+  # Observer for algorithm changes
+  shiny::observeEvent(input$sampling_algorithm, {
+    cleanup_visualization()
+    
+    # Reinitialize sampler with current distribution
+    initial_position <- INITIAL_POSITIONS[[input$distribution]]
+    
+    if (input$sampling_algorithm == "hmc") {
+      app_data$sampler <- SamplerHMC$new(
+        dist()$neg_logp,
+        dist()$neg_dlogp,
+        step_size = input$step_size,
+        path_length = input$path_length,
+        initial_position = initial_position
+      )
+    } else {
+      app_data$sampler <- SamplerMH$new(
+        dist()$neg_logp,
+        proposal_sd = input$proposal_sd,
+        initial_position = initial_position
+      )
+    }
+  })
+
+  shiny::observe({
+    dist(DISTRIBUTIONS[[input$distribution]])
+    initial_position <- INITIAL_POSITIONS[[input$distribution]]
     
     if (input$sampling_algorithm == "hmc") {
       step_size <- shiny::isolate(input$step_size)
@@ -432,20 +480,6 @@ server <- function(input, output, session) {
 
   # Remove all sampled points
   shiny::observeEvent(input$remove_points, {
-    # Remove points from the first subscene
-    subscene <- rgl::subsceneList()[[1]]
-    session$sendCustomMessage(
-      "deleteFromRglPlot",
-      list(id = "rglPlot", objects = points_objects_dev1$items, subscene = subscene)
-    )
-    points_objects_dev1$clear()
-
-    # Remove points from the second subscene
-    subscene <- rgl::subsceneList()[[2]]
-    session$sendCustomMessage(
-      "deleteFromRglPlot",
-      list(id = "rglPlot", objects = points_objects_dev2$items, subscene = subscene)
-    )
-    points_objects_dev2$clear()
+    cleanup_visualization()
   })
 }
