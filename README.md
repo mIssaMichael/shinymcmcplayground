@@ -24,4 +24,3 @@ The function `run_app()` fires up the application. Just do
 shinymcmcplayground::run_app()
 ```
 
-### Usage
