@@ -1,5 +1,5 @@
 # SHINY MCMC PLAYGROUND
-This is an interactive Shiny app built on top of tomicapretto/shiny-hmc project. It's still in early stages but I'm hoping to clean some of the features up and then add a few other MCMC samplers to play with. Check out the original on [GitHub](https://github.com/tomicapretto/shiny-hmc)
+This is an interactive Shiny app built on top of tomicapretto/shiny-hmc project. It's still in early stages but I'm hoping to clean some of the features up and then add a few other MCMC samplers to play with. Currently the sampling algorithms are (1) vanilla Metropolis-Hastings and (2) Hamiltonian Monte Carlo. Check out the original on [GitHub](https://github.com/tomicapretto/shiny-hmc)
 
 
 ![Untitledvideo-MadewithClipchamp-ezgif com-crop](https://github.com/user-attachments/assets/7e542d34-1e19-4557-b651-904456830da5)
