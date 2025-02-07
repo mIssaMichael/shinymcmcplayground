@@ -1,8 +1,8 @@
 # SHINY MCMC PLAYGROUND
 This is an interactive Shiny app built on top of tomicapretto/shiny-hmc project. It's still in early stages but I'm hoping to clean some of the features up and then add a few other MCMC samplers to play with. Check out the original on [GitHub](https://github.com/tomicapretto/shiny-hmc)
 
+![Untitledvideo-MadewithClipchamp2-ezgif com-cut](https://github.com/user-attachments/assets/a3bcbaff-7b04-4465-bbac-214b75ff298a)
 
-![Untitledvideo-MadewithClipchamp-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/3825dc34-3df1-4046-b9da-44f97e23c05f)
 
 ## Installation
 
