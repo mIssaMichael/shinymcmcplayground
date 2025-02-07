@@ -24,7 +24,4 @@ The function `run_app()` fires up the application. Just do
 shinyhmc::run_app()
 ```
 
-and have fun!
-
-
 ### Usage
