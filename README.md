@@ -21,7 +21,7 @@ devtools::install_github("mIssaMichael/shiny-hmc-main")
 The function `run_app()` fires up the application. Just do
 
 ``` r
-shinyhmc::run_app()
+shinymcmcplayground::run_app()
 ```
 
 ### Usage
